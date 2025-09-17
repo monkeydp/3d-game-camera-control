@@ -1,0 +1,280 @@
+﻿#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; 加载库
+#include <AutoHotInterception>
+
+SendMode "Input"
+CoordMode "Mouse", "Screen"
+#HotIf WinActive("ahk_exe ck3.exe")
+
+
+; =============================================
+;          小键盘数字八向移动地图
+; =============================================
+
+; --- 全局变量和 AHI 初始化 ---
+global AHI := AutoHotInterception()
+global keyboardId := 1
+
+; --- 【核心配置区】---
+; 在这里定义所有你想要的重映射规则
+
+; 1. 定义按键扫描码常量，让代码更易读
+global SC_UP    := 328
+global SC_RIGHT := 333
+global SC_LEFT  := 331
+global SC_DOWN  := 336
+
+; 2. 定义小键盘数字键的扫描码
+global NUMPAD_1 := 79
+global NUMPAD_2 := 80
+global NUMPAD_3 := 81
+global NUMPAD_4 := 75
+global NUMPAD_6 := 77
+global NUMPAD_7 := 71
+global NUMPAD_8 := 72
+global NUMPAD_9 := 73
+
+
+; 3. 创建映射表 (Map)
+;    键 (Key) 是你要按下的原始按键
+;    值 (Value) 是一个包含所有目标按键扫描码的数组 (Array)
+global KeyMappings := Map(
+    ; --- 对角线映射 (原有的) ---
+    NUMPAD_1, [SC_LEFT, SC_DOWN],
+    NUMPAD_3, [SC_RIGHT, SC_DOWN],
+    NUMPAD_7, [SC_LEFT, SC_UP],
+    NUMPAD_9, [SC_RIGHT, SC_UP],
+
+    ; --- 上下左右映射 (新增的) ---
+    NUMPAD_8, [SC_UP],
+    NUMPAD_2, [SC_DOWN],
+    NUMPAD_4, [SC_LEFT],
+    NUMPAD_6, [SC_RIGHT]
+)
+
+; --- 【核心逻辑函数】(无需任何修改) ---
+HandleRemap(triggerCode, state) {
+    global keyboardId, AHI, KeyMappings
+    targetKeys := KeyMappings[triggerCode]
+    for keyCode in targetKeys {
+        AHI.SendKeyEvent(keyboardId, keyCode, state)
+    }
+}
+
+
+; --- 【主事件处理函数】(已增加窗口判断) ---
+KeyEvent(code, state) {
+    global KeyMappings, keyboardId, AHI
+
+    ; 【核心修改点】先检查当前窗口是不是 ck3.exe
+    if (WinActive("ahk_exe ck3.exe")) {
+        
+        ; 如果是 ck3.exe，再执行原来的映射逻辑
+        if (KeyMappings.Has(code)) {
+            HandleRemap(code, state)
+            return 0 ; 拦截按键
+        }
+    }
+
+    ; 如果窗口不是 ck3.exe，或者按键不在映射表中，
+    ; 就把按键原封不动地放行
+    AHI.SendKeyEvent(keyboardId, code, state)
+    return 0
+}
+; -----------------------------------------------------------------
+; 设置键盘拦截
+AHI.SubscribeKeyboard(keyboardId, true, KeyEvent)
+
+; 使用热键来强制脚本持久化 (修正为您之前使用的有效代码)
+NumpadSub::
+{
+    Suspend
+}
+; -----------------------------------------------------------------
+
+
+; =============================================
+;          持续缩放
+; =============================================
+
+; --- 按下 小键盘“*” 放大 ---
+NumpadMult::
+{
+    ZoomIn()
+}
+
+; --- 按下 小键盘“/” 缩小 ---
+NumpadDiv::
+{
+    ZoomOut()
+}
+
+
+; ######################################################################
+; ##                                                                  ##
+; ##                       核心功能函数                               ##
+; ##                                                                  ##
+; ######################################################################
+
+global scrollInterval := 100 
+
+; 这个变量现在用来跟踪当前的滚动方向
+; 可能的值: "none", "in", "out"
+global currentZoomState := "none"
+
+ZoomIn()
+{
+    global currentZoomState
+
+    local previousState := currentZoomState
+    StopZooming()
+
+    if (previousState != "out")
+    {
+        currentZoomState := "out"
+        SetTimer ScrollUpAction, scrollInterval
+    }
+}
+
+ZoomOut()
+{
+    global currentZoomState
+    
+    ; 核心逻辑:
+    ; 1. 先记录下当前是什么状态。
+    ; 2. 立即停止所有当前的滚动。
+    ; 3. 如果之前的状态不是“正在放大”，那么就开始“放大”。
+    ;    (如果之前是“正在缩小”，这会无缝切换；如果之前是“停止”，这会直接启动)
+    ; 4. 如果之前的状态就是“正在放大”，那么按第二次就意味着停止，此时 StopZooming() 已经完成任务。
+    
+    local previousState := currentZoomState
+    StopZooming()
+
+    if (previousState != "in")
+    {
+        currentZoomState := "in"
+        SetTimer ScrollDownAction, scrollInterval
+    }
+}
+
+ScrollDownAction()
+{
+    Send "{WheelDown}"
+}
+
+ScrollUpAction()
+{
+    Send "{WheelUp}"
+}
+
+StopZooming()
+{
+    global currentZoomState
+    SetTimer ScrollDownAction, 0
+    SetTimer ScrollUpAction, 0
+    currentZoomState := "none"
+}
+
+MouseMove2center()
+{
+    MouseMove A_ScreenWidth / 2, A_ScreenHeight / 2, 0
+}
+
+
+; =============================================
+;          鼠标当前位置移动到地图中心
+; =============================================
+
+global PI := 3.141592653589793
+global isPanning := false
+
+#HotIf WinActive("ahk_exe ck3.exe")
+
+#MaxThreadsPerHotkey 2
+
+Numpad5::
+{
+    ; --- 【核心修正】---
+    ; 在热键内部声明我们要使用的是全局变量 isPanning
+    global isPanning
+
+    isPanning := !isPanning
+
+    if (isPanning) {
+        SmoothPanToCenter()
+        isPanning := false
+    }
+}
+
+#HotIf
+
+EaseInOut(p) {
+    global PI
+    return -(Cos(PI * p) - 1) / 2
+}
+
+EaseOutCubic(p) {
+    return 1 - (1 - p) ** 3
+}
+
+SmoothPanToCenter() {
+    global isPanning
+
+    overshootSteps := 35
+    overshootDelay := 10
+    overshootFactor := 1.3
+    pauseDuration := 400
+    settleSteps := 50
+    settleDelay := 20
+
+    MouseGetPos(&startX, &startY)
+    centerX := A_ScreenWidth // 2
+    centerY := A_ScreenHeight // 2
+    totalMoveX := centerX - startX
+    totalMoveY := centerY - startY
+    overshootMouseX := Round(startX + totalMoveX * overshootFactor)
+    overshootMouseY := Round(startY + totalMoveY * overshootFactor)
+    finalMouseX := startX + totalMoveX
+    finalMouseY := startY + totalMoveY
+    
+    Send "{MButton Down}"
+    Sleep 20
+
+    Loop overshootSteps {
+        if (!isPanning) {
+            Send "{MButton Up}"
+            return
+        }
+        progress := EaseInOut(A_Index / overshootSteps)
+        currentX := Round(startX + (overshootMouseX - startX) * progress)
+        currentY := Round(startY + (overshootMouseY - startY) * progress)
+        MouseMove(currentX, currentY, 0)
+        Sleep overshootDelay
+    }
+    MouseMove(overshootMouseX, overshootMouseY, 0)
+
+    Sleep pauseDuration
+
+    if (!isPanning) {
+        Send "{MButton Up}"
+        return
+    }
+
+    Loop settleSteps {
+        if (!isPanning) {
+            Send "{MButton Up}"
+            return
+        }
+        linearProgress := A_Index / settleSteps 
+        easedProgress := EaseOutCubic(linearProgress)
+        currentX := Round(overshootMouseX + (finalMouseX - overshootMouseX) * easedProgress)
+        currentY := Round(overshootMouseY + (finalMouseY - overshootMouseY) * easedProgress)
+        MouseMove(currentX, currentY, 0)
+        Sleep settleDelay
+    }
+    MouseMove(finalMouseX, finalMouseY, 0)
+
+    Send "{MButton Up}"
+}
