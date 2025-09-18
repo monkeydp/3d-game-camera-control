@@ -2,49 +2,81 @@
 #Warn
 #SingleInstance Force
 
-; =============================================
-;          引入功能模块
-; =============================================
+; ====================================================================
+; ##                     1. 全局设定与模块引入                      ##
+; ====================================================================
+
 #Include Zoom.ahk
 #include MousePos.ahk
 #Include SmoothPan.ahk
+#Include AHIRemapper.ahk
 
-; =============================================
-;          全局设定
-; =============================================
 SendMode "Input"
 CoordMode "Mouse", "Screen"
 
-; =============================================
-;          模块配置与实例化
-; =============================================
+global wintitle := "ahk_exe ck3.exe"
 
-global zoom_g := Zoom()
-global mousePos_g := MousePos()
+; ====================================================================
+; ##               2. AHIRemapper 模块 (背景服务)                   ##
+; ====================================================================
+
+{
+    ; --- 在局部代码块中定义常量，避免污染全局 ---
+    UP    := 328, RIGHT := 333, LEFT  := 331, DOWN  := 336
+    NUM_1 := 79,  NUM_2 := 80,  NUM_3 := 81,  NUM_4 := 75
+    NUM_6 := 77,  NUM_7 := 71,  NUM_8 := 72,  NUM_9 := 73
+
+    ; --- 构建映射表 ---
+    mappings := Map(
+        NUM_1, [LEFT, DOWN],
+        NUM_3, [RIGHT, DOWN],
+        NUM_7, [LEFT, UP],
+        NUM_9, [RIGHT, UP],
+        NUM_8, [UP],
+        NUM_2, [DOWN],
+        NUM_4, [LEFT],
+        NUM_6, [RIGHT]
+    )
+
+    global ahir_g := AHIRemapper({
+        keyboardId: 1,
+        keyMappings: mappings,
+        winTitle: wintitle
+    })
+}
+
+ahir_g.start()
+
+
+; ====================================================================
+; ##             3. 游戏内专属模块与热键 (ck3.exe)                  ##
+; ====================================================================
+#HotIf WinActive(wintitle)
+#MaxThreadsPerHotkey 2
+
+; --------------------------------------------------------------------
+; --- SmoothPan 模块 ---
+; --------------------------------------------------------------------
+
 global smoothPan_g := SmoothPan({
-    speed: 30,                       ; 全局速度控制器 (100 = 基础速度)
-    minPixelMovePerFrame: 1.0,       ; 【关键参数】每帧最低移动像素
-    baseOvershootDuration: 350,      ; 动画第一阶段（过冲）的基础时长（毫秒）
-    baseSettleDuration: 450,         ; 动画第二阶段（缓动返回）的基础时长（毫秒）
+    speed: 30,                       ; 移动速度 (100 = 基础速度)
+    minPixelMovePerFrame: 1.0,       ; 每帧最低移动像素
+    baseOvershootDuration: 350,      ; 过冲阶段的基础时长（毫秒）
+    baseSettleDuration: 450,         ; 缓动返回的基础时长（毫秒）
     overshootFactor: 1.2,            ; 缓动回弹的幅度
     pauseDuration: 250,              ; 到达过冲点后的暂停时间
     frameDelay: 10                   ; 动画的“刷新率”
 })
 
+Numpad5::smoothPan_g.toggle()
 
-; #############################################
-; ##          游戏内专属热键区域             ##
-; #############################################
-#HotIf WinActive("ahk_exe ck3.exe")
-#MaxThreadsPerHotkey 2
 
-; --- Zoom 模块热键 ---
-NumpadMult::zoom_g.zoomIn()
-NumpadDiv::zoom_g.zoomOut()
-^NumpadMult::zoom_g.zoomIn(false)
-^NumpadDiv::zoom_g.zoomOut(false)
+; --------------------------------------------------------------------
+; --- MousePos 模块 ---
+; --------------------------------------------------------------------
 
-; --- MousePos 模块热键 ---
+global mousePos_g := MousePos()
+
 0::mousePos_g.moveTo("0")
 1::mousePos_g.moveTo("1")
 2::mousePos_g.moveTo("2")
@@ -67,7 +99,17 @@ NumpadDiv::zoom_g.zoomOut()
 ^8::mousePos_g.record("8")
 ^9::mousePos_g.record("9")
 
-; --- SmoothPan 模块热键 ---
-Numpad5::smoothPan_g.toggle()
+
+; --------------------------------------------------------------------
+; --- Zoom 模块 ---
+; --------------------------------------------------------------------
+
+global zoom_g := Zoom()
+
+NumpadMult::zoom_g.zoomIn()
+NumpadDiv::zoom_g.zoomOut()
+^NumpadMult::zoom_g.zoomIn(false)
+^NumpadDiv::zoom_g.zoomOut(false)
+
 
 #HotIf ; 关闭上下文限制
