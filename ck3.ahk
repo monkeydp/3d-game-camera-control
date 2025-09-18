@@ -8,6 +8,10 @@ SendMode "Input"
 CoordMode "Mouse", "Screen"
 #HotIf WinActive("ahk_exe ck3.exe")
 
+Init(){
+    MouseMove2center()
+}
+
 
 ; =============================================
 ;          小键盘数字八向移动地图
@@ -27,6 +31,7 @@ global SC_LEFT  := 331
 global SC_DOWN  := 336
 
 ; 2. 定义小键盘数字键的扫描码
+global NUMPAD_1 := 82
 global NUMPAD_1 := 79
 global NUMPAD_2 := 80
 global NUMPAD_3 := 81
@@ -35,6 +40,12 @@ global NUMPAD_6 := 77
 global NUMPAD_7 := 71
 global NUMPAD_8 := 72
 global NUMPAD_9 := 73
+
+; 2. 定义小键盘其他按键
+global NUMPAD_SUB := 74
+global NUMPAD_ADD := 78
+global NUMPAD_Milt := 55
+global NUMPAD_DIV := 309
 
 
 ; 3. 创建映射表 (Map)
@@ -54,7 +65,7 @@ global KeyMappings := Map(
     NUMPAD_6, [SC_RIGHT]
 )
 
-; --- 【核心逻辑函数】(无需任何修改) ---
+; --- 【核心逻辑函数 ---
 HandleRemap(triggerCode, state) {
     global keyboardId, AHI, KeyMappings
     targetKeys := KeyMappings[triggerCode]
@@ -64,36 +75,35 @@ HandleRemap(triggerCode, state) {
 }
 
 
-; --- 【主事件处理函数】(已增加窗口判断) ---
+; --- 【主事件处理函数】 ---
 KeyEvent(code, state) {
     global KeyMappings, keyboardId, AHI
 
     ; 【核心修改点】先检查当前窗口是不是 ck3.exe
-    if (WinActive("ahk_exe ck3.exe")) {
+    if (!WinActive("ahk_exe ck3.exe")) {
+        ; 如果窗口不是 ck3.exe，或者按键不在映射表中，
+        ; 就把按键原封不动地放行
+        AHI.SendKeyEvent(keyboardId, code, state)
+        return 0
+    }
         
-        ; 如果是 ck3.exe，再执行原来的映射逻辑
-        if (KeyMappings.Has(code)) {
-            HandleRemap(code, state)
-            return 0 ; 拦截按键
-        }
+    ; 如果是 ck3.exe，再执行原来的映射逻辑
+    if (KeyMappings.Has(code)) {
+        HandleRemap(code, state)
+        return 0 ; 拦截按键
+    }
+    else if (code == NUMPAD_SUB && state == 1) ; state == 1 表示按下
+    {
+        SetTimer Init, -1
+        return 0 ; return 0 会阻止原始按键
     }
 
-    ; 如果窗口不是 ck3.exe，或者按键不在映射表中，
-    ; 就把按键原封不动地放行
     AHI.SendKeyEvent(keyboardId, code, state)
     return 0
 }
 ; -----------------------------------------------------------------
 ; 设置键盘拦截
 AHI.SubscribeKeyboard(keyboardId, true, KeyEvent)
-
-; 使用热键来强制脚本持久化 (修正为您之前使用的有效代码)
-NumpadSub::
-{
-    Suspend
-}
-; -----------------------------------------------------------------
-
 
 ; =============================================
 ;          持续缩放
@@ -102,12 +112,14 @@ NumpadSub::
 ; --- 按下 小键盘“*” 放大 ---
 NumpadMult::
 {
+    MouseMove2center()
     ZoomIn()
 }
 
 ; --- 按下 小键盘“/” 缩小 ---
 NumpadDiv::
 {
+    MouseMove2center()
     ZoomOut()
 }
 
@@ -119,6 +131,7 @@ NumpadDiv::
 ; ######################################################################
 
 global scrollInterval := 100 
+global scrollmaxtime := 5000 
 
 ; 这个变量现在用来跟踪当前的滚动方向
 ; 可能的值: "none", "in", "out"
@@ -135,6 +148,7 @@ ZoomIn()
     {
         currentZoomState := "out"
         SetTimer ScrollUpAction, scrollInterval
+        SetTimer StopZooming, -scrollmaxtime
     }
 }
 
@@ -156,6 +170,7 @@ ZoomOut()
     {
         currentZoomState := "in"
         SetTimer ScrollDownAction, scrollInterval
+        SetTimer StopZooming, -scrollmaxtime
     }
 }
 
