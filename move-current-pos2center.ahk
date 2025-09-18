@@ -9,15 +9,12 @@ SendMode "Input"
 global globalSpeed := 10
 
 ; 【关键参数：每帧最低移动像素】
-; 强制要求每次鼠标移动的距离都不能小于这个值，是消除顿挫感的最终解决方案。
-; 1.0 意味着在最慢速的阶段，脚本会强制将一次 0.2 像素的移动“放大”到 1.0 像素。
-; 建议值: 1.0
 global minPixelMovePerFrame := 1.0
 
 ; 动画第一阶段（过冲）的基础时长（毫秒）
 global baseOvershootDuration := 350
 
-; 动画第二阶段（缓动返回）的基础时长（毫秒）
+; 动画第二阶段（缓动返回）的基础时长（毫roic）
 global baseSettleDuration := 450
 
 ; 缓动回弹的幅度
@@ -51,7 +48,7 @@ Numpad5::
 #HotIf
 
 EaseInOut(p) => -(Cos(PI * p) - 1) / 2
-EaseOutQuad(p) => p * (2 - p) ; 使用更平缓的缓出，手感更好
+EaseOutQuad(p) => p * (2 - p)
 
 SmoothPanToCenter() {
     global isPanning, globalSpeed, baseOvershootDuration, baseSettleDuration
@@ -78,7 +75,9 @@ SmoothPanToCenter() {
     floatX := startX, floatY := startY
     lastEasedProgress := 0
     startTime := A_TickCount
-    while ((elapsedTime := A_TickCount - startTime) < targetOvershootDuration) {
+    
+    while ((A_TickCount - startTime < targetOvershootDuration) and (Sqrt((overshootMouseX - floatX)**2 + (overshootMouseY - floatY)**2) > 0.5))
+    {
         if (!isPanning)
         {
             Send("{MButton Up}")
@@ -96,25 +95,15 @@ SmoothPanToCenter() {
         if (distance > 0 and distance < minPixelMovePerFrame)
         {
             scale := minPixelMovePerFrame / distance
-            deltaX *= scale
-            deltaY *= scale
-            
-            ; --- 【核心修正：增加“刹车”，防止过冲】 ---
-            remainingX := overshootMouseX - floatX
-            remainingY := overshootMouseY - floatY
+            deltaX *= scale, deltaY *= scale
+            remainingX := overshootMouseX - floatX, remainingY := overshootMouseY - floatY
             remainingDist := Sqrt(remainingX**2 + remainingY**2)
-            currentMoveDist := Sqrt(deltaX**2 + deltaY**2)
-            
-            ; 如果强制移动的距离 > 剩下的距离，则只移动剩下的距离
-            if (currentMoveDist > 0 and currentMoveDist > remainingDist) {
-                deltaX := remainingX
-                deltaY := remainingY
+            if (Sqrt(deltaX**2 + deltaY**2) > remainingDist) {
+                deltaX := remainingX, deltaY := remainingY
             }
         }
 
-        floatX += deltaX
-        floatY += deltaY
-
+        floatX += deltaX, floatY += deltaY
         MouseMove(Round(floatX), Round(floatY), 0)
         lastEasedProgress := easedProgress
         Sleep(frameDelay)
@@ -122,7 +111,7 @@ SmoothPanToCenter() {
     MouseMove(Round(overshootMouseX), Round(overshootMouseY), 0)
 
     Sleep(pauseDuration)
-    
+
     if (!isPanning)
     {
         Send("{MButton Up}")
@@ -132,7 +121,9 @@ SmoothPanToCenter() {
     floatX := overshootMouseX, floatY := overshootMouseY
     lastEasedProgress := 0
     startTime := A_TickCount
-    while ((elapsedTime := A_TickCount - startTime) < targetSettleDuration) {
+    
+    while ((A_TickCount - startTime < targetSettleDuration) and (Sqrt((finalMouseX - floatX)**2 + (finalMouseY - floatY)**2) > 0.5))
+    {
         if (!isPanning)
         {
             Send("{MButton Up}")
@@ -150,25 +141,15 @@ SmoothPanToCenter() {
         if (distance > 0 and distance < minPixelMovePerFrame)
         {
             scale := minPixelMovePerFrame / distance
-            deltaX *= scale
-            deltaY *= scale
-
-            ; --- 【核心修正：增加“刹车”，防止过冲】 ---
-            remainingX := finalMouseX - floatX
-            remainingY := finalMouseY - floatY
+            deltaX *= scale, deltaY *= scale
+            remainingX := finalMouseX - floatX, remainingY := finalMouseY - floatY
             remainingDist := Sqrt(remainingX**2 + remainingY**2)
-            currentMoveDist := Sqrt(deltaX**2 + deltaY**2)
-
-            ; 如果强制移动的距离 > 剩下的距离，则只移动剩下的距离
-            if (currentMoveDist > 0 and currentMoveDist > remainingDist) {
-                deltaX := remainingX
-                deltaY := remainingY
+            if (Sqrt(deltaX**2 + deltaY**2) > remainingDist) {
+                deltaX := remainingX, deltaY := remainingY
             }
         }
 
-        floatX += deltaX
-        floatY += deltaY
-
+        floatX += deltaX, floatY += deltaY
         MouseMove(Round(floatX), Round(floatY), 0)
         lastEasedProgress := easedProgress
         Sleep(frameDelay)
