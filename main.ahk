@@ -36,6 +36,7 @@ global smoothPan_g := SmoothPan({
 ; ##          游戏内专属热键区域             ##
 ; #############################################
 #HotIf WinActive("ahk_exe ck3.exe")
+#MaxThreadsPerHotkey 2
 
 ; --- Zoom 模块热键 ---
 NumpadMult::zoom_g.zoomIn()

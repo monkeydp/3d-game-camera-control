@@ -4,15 +4,9 @@
 SendMode "Input"
 CoordMode "Mouse", "Screen"
 
-; #####################################################################
-; ##                                                                 ##
-; ##               最终的、绝对可靠的 SmoothPan 类                   ##
-; ##                                                                 ##
-; #####################################################################
-
 class SmoothPan
 {
-    ; --- 类的属性 (源自您的全局变量，已恢复注释) ---
+    ; --- 类的属性 (参数) ---
     _speed := 100                  ; 移动速度 (100 = 基础速度)
     _minPixelMovePerFrame := 1.0   ; 每帧最低移动像素
     _baseOvershootDuration := 350  ; 过冲阶段的基础时长
@@ -23,41 +17,34 @@ class SmoothPan
     _PI := 3.141592653589793       ; PI 常量
     _isPanning := false            ; 内部状态：是否正在平移
     
-    ; --- 构造函数 (使用了绝对正确的 .HasOwnProp 方法) ---
     __New(config := 0)
     {
         if (IsObject(config))
         {
-            if (config.HasOwnProp("speed"))
-                this._speed := config.speed
-            if (config.HasOwnProp("minPixelMovePerFrame"))
-                this._minPixelMovePerFrame := config.minPixelMovePerFrame
-            if (config.HasOwnProp("baseOvershootDuration"))
-                this._baseOvershootDuration := config.baseOvershootDuration
-            if (config.HasOwnProp("baseSettleDuration"))
-                this._baseSettleDuration := config.baseSettleDuration
-            if (config.HasOwnProp("overshootFactor"))
-                this._overshootFactor := config.overshootFactor
-            if (config.HasOwnProp("pauseDuration"))
-                this._pauseDuration := config.pauseDuration
-            if (config.HasOwnProp("frameDelay"))
-                this._frameDelay := config.frameDelay
+            for key, value in config.OwnProps()
+            {
+                local internalPropName := "_" . key
+                if (this.HasOwnProp(internalPropName))
+                {
+                    this.%internalPropName% := value
+                }
+            }
         }
     }
 
-    ; --- 公共方法 ---
     toggle()
     {
-        if (this._isPanning) {
+        if (this._isPanning)
+        {
             this._isPanning := false
             return
         }
+        
         this._isPanning := true
         this._executePanToCenter()
         this._isPanning := false
     }
     
-    ; --- 私有方法 ---
     _easeInOut(p) => -(Cos(this._PI * p) - 1) / 2
     _easeOutQuad(p) => p * (2 - p)
 
