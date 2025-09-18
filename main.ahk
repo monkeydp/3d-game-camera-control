@@ -7,6 +7,7 @@
 ; =============================================
 #Include zoom.ahk
 #include mouse-pos.ahk
+#Include smooth-pan.ahk
 
 ; =============================================
 ;          全局设定
@@ -15,10 +16,21 @@ SendMode "Input"
 CoordMode "Mouse", "Screen"
 
 ; =============================================
-;          模块实例化
+;          模块配置与实例化
 ; =============================================
+
 global zoom_g := Zoom()
 global mousePos_g := MousePos()
+global smoothPan_g := SmoothPan({
+    speed: 30,                       ; 全局速度控制器 (100 = 基础速度)
+    minPixelMovePerFrame: 1.0,       ; 【关键参数】每帧最低移动像素
+    baseOvershootDuration: 350,      ; 动画第一阶段（过冲）的基础时长（毫秒）
+    baseSettleDuration: 450,         ; 动画第二阶段（缓动返回）的基础时长（毫秒）
+    overshootFactor: 1.3,            ; 缓动回弹的幅度
+    pauseDuration: 250,              ; 到达过冲点后的暂停时间
+    frameDelay: 10                   ; 动画的“刷新率”
+})
+
 
 ; #############################################
 ; ##          游戏内专属热键区域             ##
@@ -53,5 +65,8 @@ NumpadDiv::zoom_g.zoomOut()
 ^7::mousePos_g.record("7")
 ^8::mousePos_g.record("8")
 ^9::mousePos_g.record("9")
+
+; --- SmoothPan 模块热键 ---
+Numpad5::smoothPan_g.toggle()
 
 #HotIf ; 关闭上下文限制
