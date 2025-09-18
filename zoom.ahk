@@ -1,136 +1,112 @@
 ﻿#Requires AutoHotkey v2.0
-#Warn
-#SingleInstance Force
 
-SendMode "Input"
-CoordMode "Mouse", "Screen"
-#HotIf WinActive("ahk_exe ck3.exe")
-
-; =============================================
-;          热键定义
-; =============================================
-
-; --- 平滑缩放 (默认) ---
-NumpadMult::ZoomIn()     ; 默认调用 ZoomIn(true)
-NumpadDiv::ZoomOut()     ; 默认调用 ZoomOut(true)
-
-; --- 匀速缩放 (按住Ctrl) ---
-^NumpadMult::ZoomIn(false)
-^NumpadDiv::ZoomOut(false)
-
-
-; =============================================
-;          缩放
-; =============================================
-
-; --- 匀速模式参数 ---
-global scrollInterval := 100 
-global scrollmaxtime := 5000 
-
-; --- 平滑模式参数 ---
-global smoothZoomDuration := 2000
-global minSmoothZoomInterval := 30
-global maxSmoothZoomInterval := 100
-
-; --- 统一状态变量 ---
-global currentZoomState := "none"
-global smoothZoomStartTime := 0
-
-ZoomIn(isSmooth := true)
+class Zoom
 {
-    global currentZoomState, scrollInterval, scrollmaxtime, smoothZoomStartTime
-
-    local previousState := currentZoomState
-    StopZooming()
-
-    if (previousState != "out")
-    {
-        currentZoomState := "out"
-        if (isSmooth)
-        {
-            smoothZoomStartTime := A_TickCount
-            SmoothZoomEngine()
-        }
-        else
-        {
-            SetTimer(ScrollUpAction, scrollInterval)
-            SetTimer(StopZooming, -scrollmaxtime)
-        }
-    }
-}
-
-ZoomOut(isSmooth := true)
-{
-    global currentZoomState, scrollInterval, scrollmaxtime, smoothZoomStartTime
+    ; =============================================
+    ;          公共接口 (Public API)
+    ; =============================================
     
-    local previousState := currentZoomState
-    StopZooming()
-
-    if (previousState != "in")
+    static zoomIn(isSmooth := true)
     {
-        currentZoomState := "in"
-        if (isSmooth)
+        local previousState := this._currentState
+        this._stop()
+
+        if (previousState != "out")
         {
-            smoothZoomStartTime := A_TickCount
-            SmoothZoomEngine()
+            this._currentState := "out"
+            if (isSmooth)
+            {
+                this._smoothStartTime := A_TickCount
+                this._smoothEngine()
+            }
+            else
+            {
+                SetTimer(this._boundUniformUpAction, this._uniformInterval)
+                SetTimer(this._boundStop, -this._uniformDuration)
+            }
+        }
+    }
+
+    static zoomOut(isSmooth := true)
+    {
+        local previousState := this._currentState
+        this._stop()
+
+        if (previousState != "in")
+        {
+            this._currentState := "in"
+            if (isSmooth)
+            {
+                this._smoothStartTime := A_TickCount
+                this._smoothEngine()
+            }
+            else
+            {
+                SetTimer(this._boundUniformDownAction, this._uniformInterval)
+                SetTimer(this._boundStop, -this._uniformDuration)
+            }
+        }
+    }
+
+    ; =============================================
+    ;          “私有”属性 (Internal Properties)
+    ; =============================================
+    
+    static _uniformInterval := 100 
+    static _uniformDuration := 5000
+    static _smoothDuration := 2000
+    static _minSmoothInterval := 30
+    static _maxSmoothInterval := 100
+    static _currentState := "none"
+    static _smoothStartTime := 0
+    
+    static _boundUniformDownAction := ObjBindMethod(Zoom, "_uniformDownAction")
+    static _boundUniformUpAction := ObjBindMethod(Zoom, "_uniformUpAction")
+    static _boundSmoothEngine := ObjBindMethod(Zoom, "_smoothEngine")
+    static _boundStop := ObjBindMethod(Zoom, "_stop")
+    
+    ; =============================================
+    ;          “私有”方法 (Internal Methods)
+    ; =============================================
+
+    static _easeOutQuad(p) => p * (2 - p)
+    
+    static _uniformDownAction() => Send("{WheelDown}")
+    static _uniformUpAction() => Send("{WheelUp}")
+    
+    static _smoothEngine()
+    {
+        if (this._currentState = "none")
+        {
+            return
+        }
+
+        if (this._currentState = "in")
+        {
+            Send("{WheelDown}")
         }
         else
         {
-            SetTimer(ScrollDownAction, scrollInterval)
-            SetTimer(StopZooming, -scrollmaxtime)
+            Send("{WheelUp}")
         }
+
+        local elapsedTime := A_TickCount - this._smoothStartTime
+        if (elapsedTime >= this._smoothDuration) {
+            this._stop()
+            return
+        }
+        local progress := elapsedTime / this._smoothDuration
+        local easedProgress := this._easeOutQuad(progress)
+        local nextInterval := Round(this._minSmoothInterval + easedProgress * (this._maxSmoothInterval - this._minSmoothInterval))
+
+        SetTimer(this._boundSmoothEngine, -nextInterval)
+    }
+
+    static _stop()
+    {
+        SetTimer(this._boundUniformDownAction, 0)
+        SetTimer(this._boundUniformUpAction, 0)
+        SetTimer(this._boundSmoothEngine, 0)
+        this._currentState := "none"
     }
 }
-
-
-; --- 匀速模式的执行函数 ---
-ScrollDownAction() => Send("{WheelDown}")
-ScrollUpAction() => Send("{WheelUp}")
-
-
-; --- 平滑模式的执行引擎 ---
-SmoothZoomEngine()
-{
-    global currentZoomState, smoothZoomStartTime, smoothZoomDuration, minSmoothZoomInterval, maxSmoothZoomInterval
-
-    if (currentZoomState = "none")
-    {
-        return
-    }
-
-    if (currentZoomState = "in")
-    {
-        Send("{WheelDown}")
-    }
-    else
-    {
-        Send("{WheelUp}")
-    }
-
-    local elapsedTime := A_TickCount - smoothZoomStartTime
-    if (elapsedTime >= smoothZoomDuration) {
-        StopZooming()
-        return
-    }
-    local progress := elapsedTime / smoothZoomDuration
-    local easedProgress := EaseOutQuad(progress)
-    local nextInterval := Round(minSmoothZoomInterval + easedProgress * (maxSmoothZoomInterval - minSmoothZoomInterval))
-
-    SetTimer(SmoothZoomEngine, -nextInterval)
-}
-
-
-; --- 统一的停止函数 ---
-StopZooming()
-{
-    global currentZoomState
-    SetTimer(ScrollDownAction, 0)
-    SetTimer(ScrollUpAction, 0)
-    SetTimer(SmoothZoomEngine, 0)
-    currentZoomState := "none"
-}
-
-; --- 公用函数 ---
-global PI := 3.141592653589793
-EaseInOut(p) => -(Cos(PI * p) - 1) / 2
-EaseOutQuad(p) => p * (2 - p)
