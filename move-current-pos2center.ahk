@@ -4,10 +4,15 @@
 SendMode "Input"
 
 ; --- 【可配置参数】 ---
-; --- 您可以在这里自由调整，以改变动画的手感 ---
 
 ; 全局速度控制器 (100 = 基础速度)
 global globalSpeed := 10
+
+; 【关键参数：每帧最低移动像素】
+; 强制要求每次鼠标移动的距离都不能小于这个值，是消除顿挫感的最终解决方案。
+; 1.0 意味着在最慢速的阶段，脚本会强制将一次 0.2 像素的移动“放大”到 1.0 像素。
+; 建议值: 1.0
+global minPixelMovePerFrame := 1.0
 
 ; 动画第一阶段（过冲）的基础时长（毫秒）
 global baseOvershootDuration := 350
@@ -15,16 +20,16 @@ global baseOvershootDuration := 350
 ; 动画第二阶段（缓动返回）的基础时长（毫秒）
 global baseSettleDuration := 450
 
-; 缓动回弹的幅度（1.0 = 不回弹, 1.3 = 回弹30%）
+; 缓动回弹的幅度
 global overshootFactor := 1.3
 
-; 到达过冲点后的暂停时间（毫秒）
+; 到达过冲点后的暂停时间
 global pauseDuration := 250
 
-; 动画的“刷新率”，即每帧之间的延时（毫秒）。建议保持在 10-16 之间。
+; 动画的“刷新率”
 global frameDelay := 10
 
-; --- 【全局状态变量】 ---
+; --- 全局状态变量 ---
 global PI := 3.141592653589793
 global isPanning := false
 
@@ -45,20 +50,17 @@ Numpad5::
 }
 #HotIf
 
-; 使用更简洁的胖箭头函数语法
 EaseInOut(p) => -(Cos(PI * p) - 1) / 2
-EaseOutCubic(p) => 1 - (1 - p) ** 3
+EaseOutQuad(p) => p * (2 - p) ; 使用更平缓的缓出，手感更好
 
 SmoothPanToCenter() {
-    ; --- 引用所有全局参数 ---
     global isPanning, globalSpeed, baseOvershootDuration, baseSettleDuration
-    global overshootFactor, pauseDuration, frameDelay
+    global overshootFactor, pauseDuration, frameDelay, minPixelMovePerFrame
 
     if (globalSpeed <= 0) {
         globalSpeed := 1
     }
 
-    ; 根据 globalSpeed 计算实际的动画持续时间
     targetOvershootDuration := baseOvershootDuration / (globalSpeed / 100)
     targetSettleDuration := baseSettleDuration / (globalSpeed / 100)
     
@@ -66,7 +68,6 @@ SmoothPanToCenter() {
     centerX := A_ScreenWidth // 2, centerY := A_ScreenHeight // 2
     totalMoveX := centerX - startX, totalMoveY := centerY - startY
     
-    ; 注意：这里的计算目标点位也应该是浮点数，以保持最高精度
     overshootMouseX := startX + totalMoveX * overshootFactor
     overshootMouseY := startY + totalMoveY * overshootFactor
     finalMouseX := startX + totalMoveX, finalMouseY := startY + totalMoveY
@@ -74,58 +75,105 @@ SmoothPanToCenter() {
     Send("{MButton Down}")
     Sleep(20)
 
-    ; --- 【核心修正】第一阶段：过冲动画 (使用增量累加) ---
-    floatX := startX, floatY := startY  ; 初始化理想浮点坐标
-    lastEasedProgress := 0              ; 初始化上一帧的进度
+    floatX := startX, floatY := startY
+    lastEasedProgress := 0
     startTime := A_TickCount
     while ((elapsedTime := A_TickCount - startTime) < targetOvershootDuration) {
-        if (!isPanning) {
+        if (!isPanning)
+        {
             Send("{MButton Up}")
             return
         }
         
-        progress := elapsedTime / targetOvershootDuration
+        progress := (A_TickCount - startTime) / targetOvershootDuration
         easedProgress := EaseInOut(progress)
-        deltaProgress := easedProgress - lastEasedProgress ; 计算自上一帧以来的进度增量
-
-        ; 将增量带来的位移，累加到理想浮点坐标上
-        floatX += (overshootMouseX - startX) * deltaProgress
-        floatY += (overshootMouseY - startY) * deltaProgress
-
-        MouseMove(Round(floatX), Round(floatY), 0) ; 移动到圆整后的理想坐标
-        lastEasedProgress := easedProgress ; 更新上一帧进度以备下次计算
-        Sleep(frameDelay)
-    }
-    MouseMove(Round(overshootMouseX), Round(overshootMouseY), 0) ; 循环结束后，确保精确到达过冲点
-
-    Sleep(pauseDuration)
-    if (!isPanning) {
-        Send("{MButton Up}")
-        return
-    }
-
-    ; --- 【核心修正】第二阶段：稳定动画 (使用增量累加) ---
-    floatX := overshootMouseX, floatY := overshootMouseY ; 重置理想坐标为当前的过冲点
-    lastEasedProgress := 0
-    startTime := A_TickCount
-    while ((elapsedTime := A_TickCount - startTime) < targetSettleDuration) {
-        if (!isPanning) {
-            Send("{MButton Up}")
-            return
-        }
-
-        progress := elapsedTime / targetSettleDuration
-        easedProgress := EaseOutCubic(progress)
         deltaProgress := easedProgress - lastEasedProgress
 
-        floatX += (finalMouseX - overshootMouseX) * deltaProgress
-        floatY += (finalMouseY - overshootMouseY) * deltaProgress
+        deltaX := (overshootMouseX - startX) * deltaProgress
+        deltaY := (overshootMouseY - startY) * deltaProgress
+        
+        distance := Sqrt(deltaX**2 + deltaY**2)
+        if (distance > 0 and distance < minPixelMovePerFrame)
+        {
+            scale := minPixelMovePerFrame / distance
+            deltaX *= scale
+            deltaY *= scale
+            
+            ; --- 【核心修正：增加“刹车”，防止过冲】 ---
+            remainingX := overshootMouseX - floatX
+            remainingY := overshootMouseY - floatY
+            remainingDist := Sqrt(remainingX**2 + remainingY**2)
+            currentMoveDist := Sqrt(deltaX**2 + deltaY**2)
+            
+            ; 如果强制移动的距离 > 剩下的距离，则只移动剩下的距离
+            if (currentMoveDist > 0 and currentMoveDist > remainingDist) {
+                deltaX := remainingX
+                deltaY := remainingY
+            }
+        }
+
+        floatX += deltaX
+        floatY += deltaY
 
         MouseMove(Round(floatX), Round(floatY), 0)
         lastEasedProgress := easedProgress
         Sleep(frameDelay)
     }
-    MouseMove(Round(finalMouseX), Round(finalMouseY), 0) ; 循环结束后，确保精确到达最终中心点
+    MouseMove(Round(overshootMouseX), Round(overshootMouseY), 0)
+
+    Sleep(pauseDuration)
+    
+    if (!isPanning)
+    {
+        Send("{MButton Up}")
+        return
+    }
+
+    floatX := overshootMouseX, floatY := overshootMouseY
+    lastEasedProgress := 0
+    startTime := A_TickCount
+    while ((elapsedTime := A_TickCount - startTime) < targetSettleDuration) {
+        if (!isPanning)
+        {
+            Send("{MButton Up}")
+            return
+        }
+
+        progress := (A_TickCount - startTime) / targetSettleDuration
+        easedProgress := EaseOutQuad(progress)
+        deltaProgress := easedProgress - lastEasedProgress
+
+        deltaX := (finalMouseX - overshootMouseX) * deltaProgress
+        deltaY := (finalMouseY - overshootMouseY) * deltaProgress
+
+        distance := Sqrt(deltaX**2 + deltaY**2)
+        if (distance > 0 and distance < minPixelMovePerFrame)
+        {
+            scale := minPixelMovePerFrame / distance
+            deltaX *= scale
+            deltaY *= scale
+
+            ; --- 【核心修正：增加“刹车”，防止过冲】 ---
+            remainingX := finalMouseX - floatX
+            remainingY := finalMouseY - floatY
+            remainingDist := Sqrt(remainingX**2 + remainingY**2)
+            currentMoveDist := Sqrt(deltaX**2 + deltaY**2)
+
+            ; 如果强制移动的距离 > 剩下的距离，则只移动剩下的距离
+            if (currentMoveDist > 0 and currentMoveDist > remainingDist) {
+                deltaX := remainingX
+                deltaY := remainingY
+            }
+        }
+
+        floatX += deltaX
+        floatY += deltaY
+
+        MouseMove(Round(floatX), Round(floatY), 0)
+        lastEasedProgress := easedProgress
+        Sleep(frameDelay)
+    }
+    MouseMove(Round(finalMouseX), Round(finalMouseY), 0)
 
     Send("{MButton Up}")
 }
