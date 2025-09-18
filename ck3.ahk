@@ -436,14 +436,14 @@ MoveToPosition(key) {
 ; =============================================
 ;          环绕视角
 ; =============================================
-global orbit_step_x := 2       ; 每次向【右】移动的像素距离。
-global orbit_step_y := -0.3    ; 每次向【下】移动的像素距离。
-global orbit_step_delay := 20  ; 每次移动的延迟时间(毫秒)。
+global orbit_step_x := -1      ; 每次向【右】移动的像素距离。
+global orbit_step_y := -0.15    ; 每次向【下】移动的像素距离。
+global orbit_step_delay := 8  ; 每次移动的延迟时间(毫秒)。
 global edge_margin := [100]    ; 屏幕边缘安全距离。
 
 ; 【新增】主动环绕时长（秒）。到达这个时间后，会像碰到边缘一样停止。
 ; 设置为 0 或一个非常大的数 (如 999) 来禁用它。
-global orbit_duration := 25.5
+global orbit_duration := 30
 
 ; 到达边缘或达到主动时长后，延迟多久松开右键（秒）。0 为立即松开。
 global release_delay_on_edge := 1
