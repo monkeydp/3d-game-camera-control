@@ -17,7 +17,7 @@ class SmoothPan
     _minPixelMovePerFrame := 1.0   ; 每帧最低移动像素
     _baseOvershootDuration := 350  ; 过冲阶段的基础时长
     _baseSettleDuration := 450     ; 稳定阶段的基础时长
-    _overshootFactor := 1.3        ; 回弹幅度
+    _overshootFactor := 1.2        ; 回弹幅度
     _pauseDuration := 250          ; 过冲后的暂停时间
     _frameDelay := 10              ; 动画的刷新率
     _PI := 3.141592653589793       ; PI 常量

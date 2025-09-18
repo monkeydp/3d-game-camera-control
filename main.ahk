@@ -26,7 +26,7 @@ global smoothPan_g := SmoothPan({
     minPixelMovePerFrame: 1.0,       ; 【关键参数】每帧最低移动像素
     baseOvershootDuration: 350,      ; 动画第一阶段（过冲）的基础时长（毫秒）
     baseSettleDuration: 450,         ; 动画第二阶段（缓动返回）的基础时长（毫秒）
-    overshootFactor: 1.3,            ; 缓动回弹的幅度
+    overshootFactor: 1.2,            ; 缓动回弹的幅度
     pauseDuration: 250,              ; 到达过冲点后的暂停时间
     frameDelay: 10                   ; 动画的“刷新率”
 })
