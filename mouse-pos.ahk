@@ -85,7 +85,7 @@ SavePositions() {
     }
 }
 
-RecordPosition(key, hotkeyName) {
+RecordPosition(key) {
     global g_positions
     MouseGetPos(&x, &y)
     local index := GetKeyAsIndex(key)
@@ -110,7 +110,7 @@ RecordPosition(key, hotkeyName) {
     SetTimer(HideToolTip, -1500)
 }
 
-MoveToPosition(key, hotkeyName) {
+MoveToPosition(key) {
     global g_positions
     local index := GetKeyAsIndex(key)
     local pos := g_positions[index]
@@ -123,10 +123,28 @@ MoveToPosition(key, hotkeyName) {
 }
 
 ; =============================================
-;          动态创建热键
+;          创建热键
 ; =============================================
-Loop 10 {
-    key := A_Index - 1
-    Hotkey("^" . key, RecordPosition.Bind(key))
-    Hotkey(key, MoveToPosition.Bind(key))
-}
+; --- 移动鼠标 ---
+0::MoveToPosition("0")
+1::MoveToPosition("1")
+2::MoveToPosition("2")
+3::MoveToPosition("3")
+4::MoveToPosition("4")
+5::MoveToPosition("5")
+6::MoveToPosition("6")
+7::MoveToPosition("7")
+8::MoveToPosition("8")
+9::MoveToPosition("9")
+
+; --- 记录坐标 ---
+^0::RecordPosition("0")
+^1::RecordPosition("1")
+^2::RecordPosition("2")
+^3::RecordPosition("3")
+^4::RecordPosition("4")
+^5::RecordPosition("5")
+^6::RecordPosition("6")
+^7::RecordPosition("7")
+^8::RecordPosition("8")
+^9::RecordPosition("9")
