@@ -202,92 +202,158 @@ MouseMove2center()
 ;          鼠标当前位置移动到地图中心
 ; =============================================
 
+; 全局速度控制器 (100 = 基础速度)
+global globalSpeed := 10
+
+; 【关键参数：每帧最低移动像素】
+global minPixelMovePerFrame := 1.0
+
+; 动画第一阶段（过冲）的基础时长（毫秒）
+global baseOvershootDuration := 350
+
+; 动画第二阶段（缓动返回）的基础时长（毫roic）
+global baseSettleDuration := 450
+
+; 缓动回弹的幅度
+global overshootFactor := 1.3
+
+; 到达过冲点后的暂停时间
+global pauseDuration := 250
+
+; 动画的“刷新率”
+global frameDelay := 10
+
+; --- 全局状态变量 ---
 global PI := 3.141592653589793
 global isPanning := false
 
+
+#HotIf WinActive("ahk_exe ck3.exe")
 #MaxThreadsPerHotkey 2
 
 Numpad5::
 {
-    ; --- 【核心修正】---
-    ; 在热键内部声明我们要使用的是全局变量 isPanning
     global isPanning
-
-    isPanning := !isPanning
-
     if (isPanning) {
-        SmoothPanToCenter()
         isPanning := false
+        return
     }
+    isPanning := true
+    SmoothPanToCenter()
+    isPanning := false
 }
+#HotIf
 
-EaseInOut(p) {
-    global PI
-    return -(Cos(PI * p) - 1) / 2
-}
-
-EaseOutCubic(p) {
-    return 1 - (1 - p) ** 3
-}
+EaseInOut(p) => -(Cos(PI * p) - 1) / 2
+EaseOutQuad(p) => p * (2 - p)
 
 SmoothPanToCenter() {
-    global isPanning
+    global isPanning, globalSpeed, baseOvershootDuration, baseSettleDuration
+    global overshootFactor, pauseDuration, frameDelay, minPixelMovePerFrame
 
-    overshootSteps := 35
-    overshootDelay := 10
-    overshootFactor := 1.3
-    pauseDuration := 400
-    settleSteps := 50
-    settleDelay := 20
+    if (globalSpeed <= 0) {
+        globalSpeed := 1
+    }
 
-    MouseGetPos(&startX, &startY)
-    centerX := A_ScreenWidth // 2
-    centerY := A_ScreenHeight // 2
-    totalMoveX := centerX - startX
-    totalMoveY := centerY - startY
-    overshootMouseX := Round(startX + totalMoveX * overshootFactor)
-    overshootMouseY := Round(startY + totalMoveY * overshootFactor)
-    finalMouseX := startX + totalMoveX
-    finalMouseY := startY + totalMoveY
+    targetOvershootDuration := baseOvershootDuration / (globalSpeed / 100)
+    targetSettleDuration := baseSettleDuration / (globalSpeed / 100)
     
-    Send "{MButton Down}"
-    Sleep 20
+    MouseGetPos(&startX, &startY)
+    centerX := A_ScreenWidth // 2, centerY := A_ScreenHeight // 2
+    totalMoveX := centerX - startX, totalMoveY := centerY - startY
+    
+    overshootMouseX := startX + totalMoveX * overshootFactor
+    overshootMouseY := startY + totalMoveY * overshootFactor
+    finalMouseX := startX + totalMoveX, finalMouseY := startY + totalMoveY
+    
+    Send("{MButton Down}")
+    Sleep(20)
 
-    Loop overshootSteps {
-        if (!isPanning) {
-            Send "{MButton Up}"
+    floatX := startX, floatY := startY
+    lastEasedProgress := 0
+    startTime := A_TickCount
+    
+    while ((A_TickCount - startTime < targetOvershootDuration) and (Sqrt((overshootMouseX - floatX)**2 + (overshootMouseY - floatY)**2) > 0.5))
+    {
+        if (!isPanning)
+        {
+            Send("{MButton Up}")
             return
         }
-        progress := EaseInOut(A_Index / overshootSteps)
-        currentX := Round(startX + (overshootMouseX - startX) * progress)
-        currentY := Round(startY + (overshootMouseY - startY) * progress)
-        MouseMove(currentX, currentY, 0)
-        Sleep overshootDelay
+        
+        progress := (A_TickCount - startTime) / targetOvershootDuration
+        easedProgress := EaseInOut(progress)
+        deltaProgress := easedProgress - lastEasedProgress
+
+        deltaX := (overshootMouseX - startX) * deltaProgress
+        deltaY := (overshootMouseY - startY) * deltaProgress
+        
+        distance := Sqrt(deltaX**2 + deltaY**2)
+        if (distance > 0 and distance < minPixelMovePerFrame)
+        {
+            scale := minPixelMovePerFrame / distance
+            deltaX *= scale, deltaY *= scale
+            remainingX := overshootMouseX - floatX, remainingY := overshootMouseY - floatY
+            remainingDist := Sqrt(remainingX**2 + remainingY**2)
+            if (Sqrt(deltaX**2 + deltaY**2) > remainingDist) {
+                deltaX := remainingX, deltaY := remainingY
+            }
+        }
+
+        floatX += deltaX, floatY += deltaY
+        MouseMove(Round(floatX), Round(floatY), 0)
+        lastEasedProgress := easedProgress
+        Sleep(frameDelay)
     }
-    MouseMove(overshootMouseX, overshootMouseY, 0)
+    MouseMove(Round(overshootMouseX), Round(overshootMouseY), 0)
 
-    Sleep pauseDuration
+    Sleep(pauseDuration)
 
-    if (!isPanning) {
-        Send "{MButton Up}"
+    if (!isPanning)
+    {
+        Send("{MButton Up}")
         return
     }
 
-    Loop settleSteps {
-        if (!isPanning) {
-            Send "{MButton Up}"
+    floatX := overshootMouseX, floatY := overshootMouseY
+    lastEasedProgress := 0
+    startTime := A_TickCount
+    
+    while ((A_TickCount - startTime < targetSettleDuration) and (Sqrt((finalMouseX - floatX)**2 + (finalMouseY - floatY)**2) > 0.5))
+    {
+        if (!isPanning)
+        {
+            Send("{MButton Up}")
             return
         }
-        linearProgress := A_Index / settleSteps 
-        easedProgress := EaseOutCubic(linearProgress)
-        currentX := Round(overshootMouseX + (finalMouseX - overshootMouseX) * easedProgress)
-        currentY := Round(overshootMouseY + (finalMouseY - overshootMouseY) * easedProgress)
-        MouseMove(currentX, currentY, 0)
-        Sleep settleDelay
-    }
-    MouseMove(finalMouseX, finalMouseY, 0)
 
-    Send "{MButton Up}"
+        progress := (A_TickCount - startTime) / targetSettleDuration
+        easedProgress := EaseOutQuad(progress)
+        deltaProgress := easedProgress - lastEasedProgress
+
+        deltaX := (finalMouseX - overshootMouseX) * deltaProgress
+        deltaY := (finalMouseY - overshootMouseY) * deltaProgress
+
+        distance := Sqrt(deltaX**2 + deltaY**2)
+        if (distance > 0 and distance < minPixelMovePerFrame)
+        {
+            scale := minPixelMovePerFrame / distance
+            deltaX *= scale, deltaY *= scale
+            remainingX := finalMouseX - floatX, remainingY := finalMouseY - floatY
+            remainingDist := Sqrt(remainingX**2 + remainingY**2)
+            if (Sqrt(deltaX**2 + deltaY**2) > remainingDist) {
+                deltaX := remainingX, deltaY := remainingY
+            }
+        }
+
+        floatX += deltaX, floatY += deltaY
+        MouseMove(Round(floatX), Round(floatY), 0)
+        lastEasedProgress := easedProgress
+        Sleep(frameDelay)
+    }
+    MouseMove(Round(finalMouseX), Round(finalMouseY), 0)
+
+    Send("{MButton Up}")
 }
 
 
