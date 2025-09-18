@@ -112,14 +112,14 @@ AHI.SubscribeKeyboard(keyboardId, true, KeyEvent)
 ; --- 按下 小键盘“*” 放大 ---
 NumpadMult::
 {
-    MouseMove2center()
+    ;MouseMove2center()
     ZoomIn()
 }
 
 ; --- 按下 小键盘“/” 缩小 ---
 NumpadDiv::
 {
-    MouseMove2center()
+    ;MouseMove2center()
     ZoomOut()
 }
 
