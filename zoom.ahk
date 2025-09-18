@@ -2,10 +2,6 @@
 
 class Zoom
 {
-    ; =============================================
-    ;          公共接口 (Public API)
-    ; =============================================
-    
     static zoomIn(isSmooth := true)
     {
         local previousState := this._currentState
@@ -49,7 +45,7 @@ class Zoom
     }
 
     ; =============================================
-    ;          “私有”属性 (Internal Properties)
+    ;          “私有”属性
     ; =============================================
     
     static _uniformInterval := 100 
@@ -66,7 +62,7 @@ class Zoom
     static _boundStop := ObjBindMethod(Zoom, "_stop")
     
     ; =============================================
-    ;          “私有”方法 (Internal Methods)
+    ;          “私有”方法
     ; =============================================
 
     static _easeOutQuad(p) => p * (2 - p)
