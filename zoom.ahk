@@ -4,6 +4,7 @@
 
 SendMode "Input"
 CoordMode "Mouse", "Screen"
+#HotIf WinActive("ahk_exe ck3.exe")
 
 ; =============================================
 ;          持续缩放
@@ -29,6 +30,7 @@ NumpadDiv::
 ; ######################################################################
 
 global scrollInterval := 100 
+global scrollmaxtime := 5000 
 
 ; 这个变量现在用来跟踪当前的滚动方向
 ; 可能的值: "none", "in", "out"
@@ -45,6 +47,7 @@ ZoomIn()
     {
         currentZoomState := "out"
         SetTimer ScrollUpAction, scrollInterval
+        SetTimer StopZooming, -scrollmaxtime
     }
 }
 
@@ -66,6 +69,7 @@ ZoomOut()
     {
         currentZoomState := "in"
         SetTimer ScrollDownAction, scrollInterval
+        SetTimer StopZooming, -scrollmaxtime
     }
 }
 
@@ -90,20 +94,4 @@ StopZooming()
 MouseMove2center()
 {
     MouseMove A_ScreenWidth / 2, A_ScreenHeight / 2, 0
-}
-
-; ######################################################################
-; ##                                                                  ##
-; ##                       脚本管理热键 (已按要求修改)                  ##
-; ##                                                                  ##
-; ######################################################################
-
-NumpadSub::
-{
-    Suspend
-}
-
-!Numpad1::
-{
-    Reload
 }
