@@ -19,12 +19,12 @@ global SC_DOWN  := 336
 
 ; 2. 定义小键盘数字键的扫描码
 global NUMPAD_1 := 79
-global NUMPAD_2 := 80 ; <--- 新增
+global NUMPAD_2 := 80
 global NUMPAD_3 := 81
-global NUMPAD_4 := 75 ; <--- 新增
-global NUMPAD_6 := 77 ; <--- 新增
+global NUMPAD_4 := 75
+global NUMPAD_6 := 77
 global NUMPAD_7 := 71
-global NUMPAD_8 := 72 ; <--- 新增
+global NUMPAD_8 := 72
 global NUMPAD_9 := 73
 
 
