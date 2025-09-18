@@ -7,38 +7,38 @@ CoordMode "Mouse", "Screen"
 #HotIf WinActive("ahk_exe ck3.exe")
 
 ; =============================================
-;          持续缩放
+;          热键定义
 ; =============================================
 
-; --- 按下 小键盘“*” 放大 ---
-NumpadMult::
-{
-    ZoomIn()
-}
+; --- 平滑缩放 (默认) ---
+NumpadMult::ZoomIn()     ; 默认调用 ZoomIn(true)
+NumpadDiv::ZoomOut()     ; 默认调用 ZoomOut(true)
 
-; --- 按下 小键盘“/” 缩小 ---
-NumpadDiv::
-{
-    ZoomOut()
-}
+; --- 匀速缩放 (按住Ctrl) ---
+^NumpadMult::ZoomIn(false)
+^NumpadDiv::ZoomOut(false)
 
 
-; ######################################################################
-; ##                                                                  ##
-; ##                       核心功能函数                               ##
-; ##                                                                  ##
-; ######################################################################
+; =============================================
+;          缩放
+; =============================================
 
+; --- 匀速模式参数 ---
 global scrollInterval := 100 
 global scrollmaxtime := 5000 
 
-; 这个变量现在用来跟踪当前的滚动方向
-; 可能的值: "none", "in", "out"
-global currentZoomState := "none"
+; --- 平滑模式参数 ---
+global smoothZoomDuration := 2000
+global minSmoothZoomInterval := 30
+global maxSmoothZoomInterval := 100
 
-ZoomIn()
+; --- 统一状态变量 ---
+global currentZoomState := "none"
+global smoothZoomStartTime := 0
+
+ZoomIn(isSmooth := true)
 {
-    global currentZoomState
+    global currentZoomState, scrollInterval, scrollmaxtime, smoothZoomStartTime
 
     local previousState := currentZoomState
     StopZooming()
@@ -46,21 +46,22 @@ ZoomIn()
     if (previousState != "out")
     {
         currentZoomState := "out"
-        SetTimer ScrollUpAction, scrollInterval
-        SetTimer StopZooming, -scrollmaxtime
+        if (isSmooth)
+        {
+            smoothZoomStartTime := A_TickCount
+            SmoothZoomEngine()
+        }
+        else
+        {
+            SetTimer(ScrollUpAction, scrollInterval)
+            SetTimer(StopZooming, -scrollmaxtime)
+        }
     }
 }
 
-ZoomOut()
+ZoomOut(isSmooth := true)
 {
-    global currentZoomState
-    
-    ; 核心逻辑:
-    ; 1. 先记录下当前是什么状态。
-    ; 2. 立即停止所有当前的滚动。
-    ; 3. 如果之前的状态不是“正在放大”，那么就开始“放大”。
-    ;    (如果之前是“正在缩小”，这会无缝切换；如果之前是“停止”，这会直接启动)
-    ; 4. 如果之前的状态就是“正在放大”，那么按第二次就意味着停止，此时 StopZooming() 已经完成任务。
+    global currentZoomState, scrollInterval, scrollmaxtime, smoothZoomStartTime
     
     local previousState := currentZoomState
     StopZooming()
@@ -68,30 +69,68 @@ ZoomOut()
     if (previousState != "in")
     {
         currentZoomState := "in"
-        SetTimer ScrollDownAction, scrollInterval
-        SetTimer StopZooming, -scrollmaxtime
+        if (isSmooth)
+        {
+            smoothZoomStartTime := A_TickCount
+            SmoothZoomEngine()
+        }
+        else
+        {
+            SetTimer(ScrollDownAction, scrollInterval)
+            SetTimer(StopZooming, -scrollmaxtime)
+        }
     }
 }
 
-ScrollDownAction()
+
+; --- 匀速模式的执行函数 ---
+ScrollDownAction() => Send("{WheelDown}")
+ScrollUpAction() => Send("{WheelUp}")
+
+
+; --- 平滑模式的执行引擎 ---
+SmoothZoomEngine()
 {
-    Send "{WheelDown}"
+    global currentZoomState, smoothZoomStartTime, smoothZoomDuration, minSmoothZoomInterval, maxSmoothZoomInterval
+
+    if (currentZoomState = "none")
+    {
+        return
+    }
+
+    if (currentZoomState = "in")
+    {
+        Send("{WheelDown}")
+    }
+    else
+    {
+        Send("{WheelUp}")
+    }
+
+    local elapsedTime := A_TickCount - smoothZoomStartTime
+    if (elapsedTime >= smoothZoomDuration) {
+        StopZooming()
+        return
+    }
+    local progress := elapsedTime / smoothZoomDuration
+    local easedProgress := EaseOutQuad(progress)
+    local nextInterval := Round(minSmoothZoomInterval + easedProgress * (maxSmoothZoomInterval - minSmoothZoomInterval))
+
+    SetTimer(SmoothZoomEngine, -nextInterval)
 }
 
-ScrollUpAction()
-{
-    Send "{WheelUp}"
-}
 
+; --- 统一的停止函数 ---
 StopZooming()
 {
     global currentZoomState
-    SetTimer ScrollDownAction, 0
-    SetTimer ScrollUpAction, 0
+    SetTimer(ScrollDownAction, 0)
+    SetTimer(ScrollUpAction, 0)
+    SetTimer(SmoothZoomEngine, 0)
     currentZoomState := "none"
 }
 
-MouseMove2center()
-{
-    MouseMove A_ScreenWidth / 2, A_ScreenHeight / 2, 0
-}
+; --- 公用函数 ---
+global PI := 3.141592653589793
+EaseInOut(p) => -(Cos(PI * p) - 1) / 2
+EaseOutQuad(p) => p * (2 - p)
