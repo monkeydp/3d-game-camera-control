@@ -5,9 +5,9 @@
 ; =============================================
 ;          引入功能模块
 ; =============================================
-#Include zoom.ahk
-#include mouse-pos.ahk
-#Include smooth-pan.ahk
+#Include Zoom.ahk
+#include MousePos.ahk
+#Include SmoothPan.ahk
 
 ; =============================================
 ;          全局设定
