@@ -20,11 +20,11 @@ class Zoom
     _boundUniformUpAction := ""    ; 预先绑定的 _uniformUpAction 方法。
     _boundSmoothEngine := ""       ; 预先绑定的 _smoothEngine 方法。
     _boundStop := ""               ; 预先绑定的 _stop 方法。
-    
+
     ; =============================================
     ;          公共接口 (Public API)
     ; =============================================
-    
+
     zoomIn(isSmooth := true)
     {
         local previousState := this._currentState
@@ -66,11 +66,11 @@ class Zoom
             }
         }
     }
-    
+
     ; =============================================
     ;          “私有”方法
     ; =============================================
-    
+
     __New()
     {
         this._boundUniformDownAction := ObjBindMethod(this, "_uniformDownAction")
@@ -78,9 +78,9 @@ class Zoom
         this._boundSmoothEngine := ObjBindMethod(this, "_smoothEngine")
         this._boundStop := ObjBindMethod(this, "_stop")
     }
-    
+
     _easeOutQuad(p) => p * (2 - p)
-    
+
     _uniformDownAction()
     {
         SendInput("{WheelDown}")
@@ -91,14 +91,14 @@ class Zoom
         SendInput("{WheelUp}")
         SetTimer(this._boundUniformUpAction, this._uniformInterval)
     }
-    
+
     _smoothEngine()
     {
         if (this._currentState = "none")
         {
             return
         }
-        
+
         if (this._currentState = "in")
             SendInput("{WheelDown}")
         else
@@ -113,7 +113,7 @@ class Zoom
         local progress := elapsedTime / this._smoothDuration
         local easedProgress := this._easeOutQuad(progress)
         local nextInterval := Round(this._minSmoothInterval + easedProgress * (this._maxSmoothInterval - this._minSmoothInterval))
-        
+
         SetTimer(this._boundSmoothEngine, -nextInterval)
     }
 
@@ -124,4 +124,15 @@ class Zoom
         SetTimer(this._boundSmoothEngine, 0)
         this._currentState := "none"
     }
+}
+
+if (A_ScriptFullPath == A_LineFile) {
+    #SingleInstance Force
+
+    global zoom_g := Zoom()
+
+    NumpadMult:: zoom_g.zoomIn()
+    NumpadDiv:: zoom_g.zoomOut()
+    ^NumpadMult:: zoom_g.zoomIn(false)
+    ^NumpadDiv:: zoom_g.zoomOut(false)
 }
