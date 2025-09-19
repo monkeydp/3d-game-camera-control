@@ -118,7 +118,7 @@ NumpadDiv::zoom_g.zoomOut()
 ; --------------------------------------------------------------------
 
 global orbit_g := AutoOrbit({
-    step_x: 2,                  ; 每次向【右】移动的像素距离。
+    step_x: -2,                  ; 每次向【右】移动的像素距离。
     step_y: 0,                  ; 每次向【下】移动的像素距离。
     step_delay: 20,             ; 每次移动的延迟时间(毫秒)。
     edge_margin: [100],         ; 屏幕边缘安全距离。
@@ -149,7 +149,7 @@ NumpadAdd:: orbit_g.toggle()
 NumpadSub:: {
     zoom_g.zoomOut(false)
     mousePos_g.moveTo("1")
-    Send("+{F9}")
+    Send("^{F9}")
 }
 
 #HotIf ; 关闭上下文限制
