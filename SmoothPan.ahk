@@ -16,20 +16,16 @@ class SmoothPan
     _frameDelay := 10              ; 动画的刷新率
     _PI := 3.141592653589793       ; PI 常量
     _isPanning := false            ; 内部状态：是否正在平移
-    
+
     __New(config := 0)
     {
         if (IsObject(config))
-        {
             for key, value in config.OwnProps()
             {
                 local internalPropName := "_" . key
                 if (this.HasOwnProp(internalPropName))
-                {
                     this.%internalPropName% := value
-                }
             }
-        }
     }
 
     toggle()
@@ -39,12 +35,12 @@ class SmoothPan
             this._isPanning := false
             return
         }
-        
+
         this._isPanning := true
         this._executePanToCenter()
         this._isPanning := false
     }
-    
+
     _easeInOut(p) => -(Cos(this._PI * p) - 1) / 2
     _easeOutQuad(p) => p * (2 - p)
 
@@ -55,44 +51,44 @@ class SmoothPan
 
         local targetOvershootDuration := this._baseOvershootDuration / (this._speed / 100)
         local targetSettleDuration := this._baseSettleDuration / (this._speed / 100)
-        
+
         MouseGetPos(&startX, &startY)
         local centerX := A_ScreenWidth // 2, centerY := A_ScreenHeight // 2
         local totalMoveX := centerX - startX, totalMoveY := centerY - startY
-        
+
         local overshootMouseX := startX + totalMoveX * this._overshootFactor
         local overshootMouseY := startY + totalMoveY * this._overshootFactor
         local finalMouseX := startX + totalMoveX, finalMouseY := startY + totalMoveY
-        
+
         SendInput("{MButton Down}")
         Sleep(20)
 
         local floatX := startX, floatY := startY
         local lastEasedProgress := 0
         local startTime := A_TickCount
-        
-        while ((A_TickCount - startTime < targetOvershootDuration) and (Sqrt((overshootMouseX - floatX)**2 + (overshootMouseY - floatY)**2) > 0.5))
+
+        while ((A_TickCount - startTime < targetOvershootDuration) and (Sqrt((overshootMouseX - floatX) ** 2 + (overshootMouseY - floatY) ** 2) > 0.5))
         {
             if (!this._isPanning)
             {
                 SendInput("{MButton Up}")
                 return
             }
-            
+
             local progress := (A_TickCount - startTime) / targetOvershootDuration
             local easedProgress := this._easeInOut(progress)
             local deltaProgress := easedProgress - lastEasedProgress
             local deltaX := (overshootMouseX - startX) * deltaProgress
             local deltaY := (overshootMouseY - startY) * deltaProgress
-            
-            local distance := Sqrt(deltaX**2 + deltaY**2)
+
+            local distance := Sqrt(deltaX ** 2 + deltaY ** 2)
             if (distance > 0 and distance < this._minPixelMovePerFrame)
             {
                 local scale := this._minPixelMovePerFrame / distance
                 deltaX *= scale, deltaY *= scale
                 local remainingX := overshootMouseX - floatX, remainingY := overshootMouseY - floatY
-                local remainingDist := Sqrt(remainingX**2 + remainingY**2)
-                if (Sqrt(deltaX**2 + deltaY**2) > remainingDist)
+                local remainingDist := Sqrt(remainingX ** 2 + remainingY ** 2)
+                if (Sqrt(deltaX ** 2 + deltaY ** 2) > remainingDist)
                 {
                     deltaX := remainingX, deltaY := remainingY
                 }
@@ -116,8 +112,8 @@ class SmoothPan
         floatX := overshootMouseX, floatY := overshootMouseY
         lastEasedProgress := 0
         startTime := A_TickCount
-        
-        while ((A_TickCount - startTime < targetSettleDuration) and (Sqrt((finalMouseX - floatX)**2 + (finalMouseY - floatY)**2) > 0.5))
+
+        while ((A_TickCount - startTime < targetSettleDuration) and (Sqrt((finalMouseX - floatX) ** 2 + (finalMouseY - floatY) ** 2) > 0.5))
         {
             if (!this._isPanning)
             {
@@ -131,14 +127,14 @@ class SmoothPan
             local deltaX := (finalMouseX - overshootMouseX) * deltaProgress
             local deltaY := (finalMouseY - overshootMouseY) * deltaProgress
 
-            local distance := Sqrt(deltaX**2 + deltaY**2)
+            local distance := Sqrt(deltaX ** 2 + deltaY ** 2)
             if (distance > 0 and distance < this._minPixelMovePerFrame)
             {
                 local scale := this._minPixelMovePerFrame / distance
                 deltaX *= scale, deltaY *= scale
                 local remainingX := finalMouseX - floatX, remainingY := finalMouseY - floatY
-                local remainingDist := Sqrt(remainingX**2 + remainingY**2)
-                if (Sqrt(deltaX**2 + deltaY**2) > remainingDist)
+                local remainingDist := Sqrt(remainingX ** 2 + remainingY ** 2)
+                if (Sqrt(deltaX ** 2 + deltaY ** 2) > remainingDist)
                 {
                     deltaX := remainingX, deltaY := remainingY
                 }

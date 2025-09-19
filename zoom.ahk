@@ -8,8 +8,8 @@ class Zoom
     _uniformDuration := 5000     ; 匀速缩放的总时长 (毫秒)。
     _uniformInterval := 50       ; 匀速滚动的固定时间间隔 (毫秒)，决定了匀速模式的速度。
     _smoothDuration := 2000      ; 平滑缩放的总时长 (毫秒)。
-    _minSmoothInterval := 30      ; 平滑缩放的最小时间间隔 (毫秒)，决定了结束时的最快速度。
-    _maxSmoothInterval := 100     ; 平滑缩放的最大时间间隔 (毫秒)，决定了开始时的最慢速度。
+    _minSmoothInterval := 50      ; 平滑缩放的最小时间间隔 (毫秒)，决定了结束时的最快速度。
+    _maxSmoothInterval := 150     ; 平滑缩放的最大时间间隔 (毫秒)，决定了开始时的最慢速度。
 
     ; =============================================
     ;          内部状态变量
@@ -71,8 +71,16 @@ class Zoom
     ;          “私有”方法
     ; =============================================
 
-    __New()
+    __New(config := 0)
     {
+        if (IsObject(config))
+            for key, value in config.OwnProps()
+            {
+                local internalPropName := "_" . key
+                if (this.HasOwnProp(internalPropName))
+                    this.%internalPropName% := value
+            }
+
         this._boundUniformDownAction := ObjBindMethod(this, "_uniformDownAction")
         this._boundUniformUpAction := ObjBindMethod(this, "_uniformUpAction")
         this._boundSmoothEngine := ObjBindMethod(this, "_smoothEngine")
