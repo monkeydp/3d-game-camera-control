@@ -1,150 +1,154 @@
-# 3D游戏相机控制增强工具
+﻿# 3D Game Camera Control 3D游戏相机控制增强工具
+
+A comprehensive camera control toolkit for 3D games that enhances the gaming experience with smooth movements, precise positioning, and intelligent camera controls.
 
 这是一个为3D游戏开发的相机控制增强工具集，使用 AutoHotkey v2 编写。它提供了多个功能模块来增强游戏中的相机操控体验，适用于各类3D游戏，特别是战略、模拟、建造类游戏（如十字军之王3、Cities: Skylines、模拟人生等）。
 
-## 功能特性
+[English | [中文](doc/README_zh.md)]
 
-### 1. 数字小键盘相机移动 (AHIRemapper)
-- 使用数字小键盘进行八方向相机移动
-- 1/3/7/9：对角线移动
-- 2/4/6/8：上下左右移动
-- 支持可变速移动
+## Features
 
-### 2. 平滑缩放 (Zoom)
-- `小键盘 *`：平滑放大
-- `小键盘 /`：平滑缩小
-- `Ctrl + 小键盘 *`：匀速放大
-- `Ctrl + 小键盘 /`：匀速缩小
+### 1. Numpad Camera Movement (AHIRemapper)
+- Eight-direction camera control using numpad
+- 1/3/7/9: Diagonal movement
+- 2/4/6/8: Cardinal directions
+- Variable speed control support
 
-### 3. 位置记录与跳转 (MousePos)
-- `0-9`：跳转到已记录的位置
-- `Ctrl + 0-9`：记录当前鼠标位置
-- 位置数据保存在 `pos.txt` 文件中
+### 2. Smooth Zoom (Zoom)
+- `Numpad *`: Smooth zoom in
+- `Numpad /`: Smooth zoom out
+- `Ctrl + Numpad *`: Uniform speed zoom in
+- `Ctrl + Numpad /`: Uniform speed zoom out
 
-### 4. 平滑视角回正 (SmoothPan)
-- `小键盘 5`：平滑地将视角移动到屏幕中心
-- 带有过冲和回弹效果，移动更自然流畅
+### 3. Position Memory System (MousePos)
+- `0-9`: Jump to saved positions
+- `Ctrl + 0-9`: Save current cursor position
+- Positions stored in `pos.txt`
 
-### 5. 自动环绕 (AutoOrbit)
-- `小键盘 +`：开启/关闭自动环绕
-- 右键点击：停止环绕
-- `Ctrl + 小键盘 +`：重新加载脚本
+### 4. Smooth View Centering (SmoothPan)
+- `Numpad 5`: Smoothly center the view
+- Features overshoot and rebound effects for natural movement
 
-## 适用场景
+### 5. Auto Orbit (AutoOrbit)
+- `Numpad +`: Toggle auto orbit
+- Right-click: Stop orbiting
+- `Ctrl + Numpad +`: Reload script
 
-本工具特别适合以下类型的3D游戏：
-1. 战略游戏（如十字军之王、文明系列等）
-2. 城市建造类游戏（如城市天际线、Anno系列等）
-3. 模拟经营类游戏（如模拟人生、过山车大亨等）
-4. 其他需要频繁控制视角的3D游戏
+## Requirements
 
-## 安装要求
+1. AutoHotkey v2.0 or higher
+2. AutoHotInterception library (only needed for multi-key combinations)
+3. Supported OS: Windows 10/11
+4. Compatible with most 3D games using standard camera controls
 
-1. AutoHotkey v2.0 或更高版本
-2. AutoHotInterception 库 (需要同时按多个键，没这个需求不用)
-3. 支持的操作系统：Windows 10/11
-4. 兼容大多数使用标准相机控制的3D游戏
+## Installation
 
-## 安装步骤
+1. Install [AutoHotkey v2](https://www.autohotkey.com/)
+2. Install [AutoHotInterception](https://github.com/evilC/AutoHotInterception) library
+3. Download all project files to the same directory
+4. Run `main.ahk` to start all features
 
-1. 安装 [AutoHotkey v2](https://www.autohotkey.com/)
-2. 安装 [AutoHotInterception](https://github.com/evilC/AutoHotInterception) 库
-3. 下载本项目所有文件到同一目录
-4. 运行 \`main.ahk\` 启动所有功能
+## Configuration
 
-## 配置说明
+### Main Configuration (main.ahk)
+- `wintitle`: Target window title (Example: "ahk_exe gamename.exe")
+  - Modify to match your game window
+  - Can use window class or process name
+  - Examples: "ahk_exe CitiesSkylines.exe", "ahk_exe Sims4.exe"
+- Module initialization parameters can be adjusted in this file
 
-### 主配置 (main.ahk)
-- \`wintitle\`：目标窗口标题（示例："ahk_exe ck3.exe"）
-  - 修改此项以适配不同的游戏窗口
-  - 可以使用窗口类名或进程名
-  - 例如："ahk_exe CitiesSkylines.exe"，"ahk_exe Sims4.exe" 等
-- 各个模块的初始化参数可在此文件中调整，以适应不同游戏的需求
+### Auto Orbit Configuration (AutoOrbit.ahk)
+- `step_x`: Horizontal movement step
+- `step_y`: Vertical movement step
+- `step_delay`: Movement interval
+- `duration`: Orbit duration
+- `edge_margin`: Screen edge safety margin
 
-### 自动环绕配置 (AutoOrbit.ahk)
-- \`step_x\`：水平移动步长
-- \`step_y\`：垂直移动步长
-- \`step_delay\`：移动间隔时间
-- \`duration\`：环绕持续时间
-- \`edge_margin\`：屏幕边缘安全距离
+### Smooth Pan Configuration (SmoothPan.ahk)
+- `speed`: Movement speed
+- `baseOvershootDuration`: Overshoot phase duration
+- `baseSettleDuration`: Settle phase duration
+- `overshootFactor`: Overshoot amplitude
 
-### 平滑回正配置 (SmoothPan.ahk)
-- \`speed\`：移动速度
-- \`baseOvershootDuration\`：过冲阶段持续时间
-- \`baseSettleDuration\`：回弹阶段持续时间
-- \`overshootFactor\`：过冲幅度
+### Zoom Configuration (Zoom.ahk)
+- `uniformDuration`: Uniform zoom duration
+- `smoothDuration`: Smooth zoom duration
+- `minSmoothInterval`/`maxSmoothInterval`: Smooth zoom speed range
 
-### 缩放配置 (Zoom.ahk)
-- \`uniformDuration\`：匀速缩放持续时间
-- \`smoothDuration\`：平滑缩放持续时间
-- \`minSmoothInterval\`/\`maxSmoothInterval\`：平滑缩放的速度范围
+## Usage Tips
 
-## 使用技巧
+1. Position Memory:
+   - Quick switch between important locations using number keys
+   - Save new positions with Ctrl+number combinations
 
-1. 位置记录：
-   - 使用数字键 0-9 快速在重要位置之间切换
-   - 用 Ctrl+数字键保存新的位置
+2. View Control:
+   - Precise movement with numpad
+   - Quick center view with Numpad 5
+   - Combine with auto orbit for building/unit inspection
 
-2. 视角控制：
-   - 小键盘进行精确移动
-   - 使用小键盘5快速回到中心位置
-   - 配合自动环绕功能查看建筑或军队
+3. Zoom Control:
+   - Short press for precise zooming
+   - Long press for continuous zoom
+   - Use Ctrl combinations for uniform speed
 
-3. 缩放控制：
-   - 短按实现精确缩放
-   - 长按实现连续缩放
-   - 需要精确缩放时使用 Ctrl 组合键
+## Game Compatibility
 
-## 常见问题
+The toolkit is especially suitable for:
+1. Strategy games (e.g., Crusader Kings, Civilization series)
+2. City builders (e.g., Cities: Skylines, Anno series)
+3. Simulation games (e.g., The Sims, Planet Coaster)
+4. Any 3D game requiring frequent camera manipulation
 
-1. 小键盘没有响应：
-   - 确认 NumLock 灯是否亮起
-   - 检查 AutoHotInterception 是否正确安装
-   - 验证键盘 ID 是否正确设置
+### Game-Specific Adjustments
 
-2. 位置记录不保存：
-   - 检查是否有 pos.txt 的写入权限
-   - 确认文件路径是否正确
+Different games may require specific configurations:
 
-3. 自动环绕不工作：
-   - 确认游戏窗口是否处于活动状态
-   - 检查是否有其他脚本干扰鼠标移动
+1. Camera Movement Speed
+   - Adjust based on game's native camera speed
+   - Modify speed parameters in main.ahk
 
-## 注意事项
+2. Orbit View
+   - Some games might not support right-click drag
+   - Adjust key bindings in AutoOrbit.ahk
 
-- 脚本需要管理员权限才能正常工作
-- 建议在游戏启动后再运行脚本
-- 如果功能失效，可以使用 Ctrl + 小键盘 + 重新加载脚本
-- 注意调整配置时备份原始设置
+3. Zoom Sensitivity
+   - Fine-tune zoom parameters for different games
+   - Modify settings in Zoom.ahk
 
-## 游戏适配
+4. Key Bindings
+   - Modify key bindings if they conflict with game defaults
+   - Change hotkey settings in main.ahk
 
-不同游戏可能需要不同的配置才能获得最佳体验：
+## Troubleshooting
 
-1. 相机移动速度
-   - 根据游戏的原始相机移动速度调整
-   - 可以在 main.ahk 中修改各项速度参数
+1. Numpad Not Responding:
+   - Verify NumLock status
+   - Check AutoHotInterception installation
+   - Validate keyboard ID settings
 
-2. 环绕视角
-   - 某些游戏可能不支持鼠标右键拖动视角
-   - 可以修改 AutoOrbit.ahk 中的按键设置
+2. Position Save Issues:
+   - Check pos.txt write permissions
+   - Verify file path configuration
 
-3. 缩放灵敏度
-   - 不同游戏的缩放响应可能不同
-   - 在 Zoom.ahk 中调整相关参数
+3. Auto Orbit Problems:
+   - Ensure game window is active
+   - Check for conflicting mouse scripts
 
-4. 按键映射
-   - 如果与游戏默认快捷键冲突，可以修改按键绑定
-   - 在 main.ahk 中更改热键设置
+## Important Notes
 
-## 更新日志
+- Script requires administrator privileges
+- Launch after game starts
+- Use Ctrl + Numpad + to reload if features stop working
+- Backup settings before configuration changes
+
+## Changelog
 
 ### 2025.9.19
-- 整合所有功能模块
-- 改进平滑移动算法
-- 优化自动环绕功能
-- 添加详细使用文档
+- Integrated all feature modules
+- Improved smooth movement algorithms
+- Enhanced auto orbit functionality
+- Added comprehensive documentation
 
-## 许可证
+## License
 
 MIT License
