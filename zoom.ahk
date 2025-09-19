@@ -3,6 +3,25 @@
 class Zoom
 {
     ; =============================================
+    ;          可配置参数
+    ; =============================================
+    _uniformDuration := 5000     ; 匀速缩放的总时长 (毫秒)。
+    _uniformInterval := 50       ; 匀速滚动的固定时间间隔 (毫秒)，决定了匀速模式的速度。
+    _smoothDuration := 2000      ; 平滑缩放的总时长 (毫秒)。
+    _minSmoothInterval := 30      ; 平滑缩放的最小时间间隔 (毫秒)，决定了结束时的最快速度。
+    _maxSmoothInterval := 100     ; 平滑缩放的最大时间间隔 (毫秒)，决定了开始时的最慢速度。
+
+    ; =============================================
+    ;          内部状态变量
+    ; =============================================
+    _currentState := "none"        ; 标记当前的缩放状态 ("in", "out", 或 "none")。
+    _smoothStartTime := 0          ; 记录平滑缩放的开始时间 (A_TickCount)。
+    _boundUniformDownAction := ""  ; 预先绑定的 _uniformDownAction 方法，以确保 SetTimer 能被正确关闭。
+    _boundUniformUpAction := ""    ; 预先绑定的 _uniformUpAction 方法。
+    _boundSmoothEngine := ""       ; 预先绑定的 _smoothEngine 方法。
+    _boundStop := ""               ; 预先绑定的 _stop 方法。
+    
+    ; =============================================
     ;          公共接口 (Public API)
     ; =============================================
     
@@ -21,7 +40,6 @@ class Zoom
             }
             else
             {
-                this._uniformCurrentInterval := this._uniformInitialInterval
                 this._uniformUpAction()
                 SetTimer(this._boundStop, -this._uniformDuration)
             }
@@ -43,94 +61,52 @@ class Zoom
             }
             else
             {
-                this._uniformCurrentInterval := this._uniformInitialInterval
                 this._uniformDownAction()
                 SetTimer(this._boundStop, -this._uniformDuration)
             }
         }
     }
-
-    ; =============================================
-    ;          “私有”属性 (实例属性)
-    ; =============================================
-    
-    _uniformDuration := 5000 
-    _uniformInitialInterval := 100
-    _uniformSpeedIncrement := 10
-    _uniformMinInterval := 10
-    _uniformSpeedUpKey := "Insert"
-    _uniformSpeedDownKey := "Delete"
-    _uniformCurrentInterval := 100
-    
-    _smoothDuration := 2000
-    _minSmoothInterval := 30
-    _maxSmoothInterval := 100
-    
-    _currentState := "none"
-    _smoothStartTime := 0
-    
-    _boundUniformDownAction := ""
-    _boundUniformUpAction := ""
-    _boundSmoothEngine := ""
-    _boundStop := ""
     
     ; =============================================
-    ;          “私有”方法 (实例方法)
+    ;          “私有”方法
     ; =============================================
     
-    ; --- 实例构造函数 ---
     __New()
     {
         this._boundUniformDownAction := ObjBindMethod(this, "_uniformDownAction")
         this._boundUniformUpAction := ObjBindMethod(this, "_uniformUpAction")
         this._boundSmoothEngine := ObjBindMethod(this, "_smoothEngine")
         this._boundStop := ObjBindMethod(this, "_stop")
-        
-        Hotkey(this._uniformSpeedUpKey, ObjBindMethod(this, "_increaseUniformSpeed"))
-        Hotkey(this._uniformSpeedDownKey, ObjBindMethod(this, "_decreaseUniformSpeed"))
     }
     
     _easeOutQuad(p) => p * (2 - p)
     
     _uniformDownAction()
     {
-        Send("{WheelDown}")
-        SetTimer(this._boundUniformDownAction, this._uniformCurrentInterval)
+        SendInput("{WheelDown}")
+        SetTimer(this._boundUniformDownAction, this._uniformInterval)
     }
     _uniformUpAction()
     {
-        Send("{WheelUp}")
-        SetTimer(this._boundUniformUpAction, this._uniformCurrentInterval)
-    }
-
-    _increaseUniformSpeed()
-    {
-        if (this._currentState = "in" or this._currentState = "out")
-        {
-            this._uniformCurrentInterval -= this._uniformSpeedIncrement
-            if (this._uniformCurrentInterval < this._uniformMinInterval)
-                this._uniformCurrentInterval := this._uniformMinInterval
-        }
-    }
-    _decreaseUniformSpeed()
-    {
-        if (this._currentState = "in" or this._currentState = "out")
-            this._uniformCurrentInterval += this._uniformSpeedIncrement
+        SendInput("{WheelUp}")
+        SetTimer(this._boundUniformUpAction, this._uniformInterval)
     }
     
     _smoothEngine()
     {
         if (this._currentState = "none")
+        {
             return
+        }
         
-
         if (this._currentState = "in")
-            Send("{WheelDown}")
+            SendInput("{WheelDown}")
         else
-            Send("{WheelUp}")
+            SendInput("{WheelUp}")
 
         local elapsedTime := A_TickCount - this._smoothStartTime
-        if (elapsedTime >= this._smoothDuration) {
+        if (elapsedTime >= this._smoothDuration)
+        {
             this._stop()
             return
         }
