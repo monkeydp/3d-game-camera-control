@@ -10,6 +10,7 @@
 #include MousePos.ahk
 #Include SmoothPan.ahk
 #Include AHIRemapper.ahk
+#Include AutoOrbit.ahk
 
 SendMode "Input"
 CoordMode "Mouse", "Screen"
@@ -111,5 +112,34 @@ NumpadDiv::zoom_g.zoomOut()
 ^NumpadMult::zoom_g.zoomIn(false)
 ^NumpadDiv::zoom_g.zoomOut(false)
 
+
+; --------------------------------------------------------------------
+; --- AutoOrbit 模块 ---
+; --------------------------------------------------------------------
+
+global orbit_g := AutoOrbit({
+    step_x: 2,                  ; 每次向【右】移动的像素距离。
+    step_y: -0.3,               ; 每次向【下】移动的像素距离。
+    step_delay: 20,             ; 每次移动的延迟时间(毫秒)。
+    edge_margin: [100],         ; 屏幕边缘安全距离。
+    duration: 25.5,             ; 主动环绕时长（秒）。
+    release_delay_on_edge: 1,   ; 到达边缘或达到主动时长后，延迟多久松开右键（秒）。
+    timeout: 60                 ; 安全保险，防止脚本意外失控。
+})
+
+NumpadAdd:: orbit_g.toggle()
+
+~RButton::
+{
+    if (orbit_g._isOrbiting)
+        orbit_g.stop()
+}
+
+^NumpadAdd::
+{
+    orbit_g.stop()
+    Sleep(50)
+    Reload()
+}
 
 #HotIf ; 关闭上下文限制
