@@ -12,7 +12,6 @@ A comprehensive camera control toolkit for 3D games that enhances the gaming exp
 - Eight-direction camera control using numpad
 - 1/3/7/9: Diagonal movement
 - 2/4/6/8: Cardinal directions
-- Variable speed control support
 
 ### 2. Smooth Zoom (Zoom)
 - `Numpad *`: Smooth zoom in
