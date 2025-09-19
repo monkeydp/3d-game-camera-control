@@ -119,7 +119,7 @@ NumpadDiv::zoom_g.zoomOut()
 
 global orbit_g := AutoOrbit({
     step_x: 2,                  ; 每次向【右】移动的像素距离。
-    step_y: -0.3,               ; 每次向【下】移动的像素距离。
+    step_y: 0,                  ; 每次向【下】移动的像素距离。
     step_delay: 20,             ; 每次移动的延迟时间(毫秒)。
     edge_margin: [100],         ; 屏幕边缘安全距离。
     duration: 25.5,             ; 主动环绕时长（秒）。
