@@ -81,11 +81,32 @@ class AutoOrbit
 
     _orbitAction() {
         MouseGetPos(&current_x, &current_y)
-        if ( (current_x + this._step_x >= A_ScreenWidth - this._parsed_margins.right)
-          || (current_x + this._step_x <= this._parsed_margins.left)
-          || (current_y + this._step_y >= A_ScreenHeight - this._parsed_margins.bottom)
-          || (current_y + this._step_y <= this._parsed_margins.top) )
+        
+        ; vvvvvvvvvv 【核心优化：智能边缘检测】 vvvvvvvvvv
+        local isAtEdge := false
+        local next_x := current_x + this._step_x
+        local next_y := current_y + this._step_y ; 用理论上的下一步位置进行预判
+
+        ; 1. 根据 X 轴的移动方向，只检查左或右边缘
+        if (this._step_x > 0 and next_x >= A_ScreenWidth - this._parsed_margins.right)
+            isAtEdge := true
+        else if (this._step_x < 0 and next_x <= this._parsed_margins.left)
+            isAtEdge := true
+
+        ; 2. 根据 Y 轴的移动方向，只检查上或下边缘
+        if (!isAtEdge) ; 如果已经撞到水平边缘，则无需再检查垂直边缘
+        {
+            if (this._step_y > 0 and next_y >= A_ScreenHeight - this._parsed_margins.bottom)
+                isAtEdge := true
+            else if (this._step_y < 0 and next_y <= this._parsed_margins.top)
+                isAtEdge := true
+        }
+
+        if (isAtEdge)
+        {
             this._stopByCondition()
+        }
+        ; ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         else {
             local y_move_this_tick := 0
             this._accumulated_y += this._step_y
