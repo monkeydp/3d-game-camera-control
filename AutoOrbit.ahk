@@ -1,11 +1,8 @@
-; AutoOrbit.ahk
 #Requires AutoHotkey v2.0
 
 class AutoOrbit
 {
-    ; =============================================
-    ;          可配置参数 (Defaults)
-    ; =============================================
+    ; --- 可配置参数 ---
     _step_x := 2                  ; 每次向【右】移动的像素距离。
     _step_y := -0.3               ; 每次向【下】移动的像素距离 (允许小数)。
     _step_delay := 20             ; 每次移动之间的延迟 (毫秒)。
@@ -14,19 +11,13 @@ class AutoOrbit
     _release_delay_on_edge := 1   ; 碰到边缘或达到时长后，延迟多久松开右键 (秒)。
     _timeout := 60                ; 安全超时，防止脚本失控 (秒)。
 
-    ; =============================================
-    ;          内部状态变量
-    ; =============================================
-    _isOrbiting := false          ; 标记当前是否正在环绕。
-    _parsed_margins := ""         ; 解析后的四边边距对象。
-    _accumulated_y := 0.0         ; 用于处理小数步进的Y轴累加器。
-
-    ; =============================================
-    ;          预绑定的回调函数
-    ; =============================================
-    _boundOrbitAction := ""       ; _orbitAction 方法的持久化绑定。
-    _boundStop := ""              ; stop 方法的持久化绑定。
-    _boundStopByCondition := ""   ; _stopByCondition 方法的持久化绑定。
+    ; --- 内部状态变量 ---
+    _isOrbiting := false
+    _parsed_margins := ""
+    _accumulated_y := 0.0
+    _boundOrbitAction := ""
+    _boundStop := ""
+    _boundStopByCondition := ""
 
     __New(config := 0) {
         if (IsObject(config)) {
@@ -37,13 +28,14 @@ class AutoOrbit
             }
         }
         this._parseMargins()
-
-        ; 在构造函数中，一次性创建并存储所有需要用作回调的函数对象。
         this._boundOrbitAction := this._orbitAction.Bind(this)
         this._boundStop := this.stop.Bind(this)
         this._boundStopByCondition := this._stopByCondition.Bind(this)
     }
 
+    /**
+     * 关键方法: 切换环绕的开始或停止。
+     */
     toggle() {
         if (this._isOrbiting)
             this.stop()
@@ -51,6 +43,9 @@ class AutoOrbit
             this.start()
     }
 
+    /**
+     * 关键方法: 启动环绕。
+     */
     start() {
         this._isOrbiting := true
         this._accumulated_y := 0.0
@@ -62,6 +57,9 @@ class AutoOrbit
             SetTimer(this._boundStopByCondition, -(this._duration * 1000))
     }
 
+    /**
+     * 关键方法: 完全停止环绕。
+     */
     stop() {
         if (!this._isOrbiting)
             return
