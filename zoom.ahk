@@ -135,6 +135,8 @@ class Zoom
 }
 
 if (A_ScriptFullPath == A_LineFile) {
+    #HotIf WinActive("ahk_exe ck3.exe")
+    #MaxThreadsPerHotkey 2
     #SingleInstance Force
 
     global zoom_g := Zoom()
