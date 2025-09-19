@@ -155,6 +155,7 @@ NumpadAdd:: orbit_g.toggle()
 NumpadSub:: {
     zoom_g.zoomOut(false)
     mousePos_g.moveTo("1")
+    Send("+w")
     Send("^{F9}")
 }
 
